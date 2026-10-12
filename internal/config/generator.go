@@ -94,7 +94,8 @@ type JiraCLIConfigGenerator struct {
 		mtls         struct {
 			caCert, clientCert, clientKey string
 		}
-		timezone string
+		tokenEntered bool
+		timezone       string
 	}
 	jiraClient         *jira.Client
 	projectSuggestions []string
@@ -432,6 +433,8 @@ func (c *JiraCLIConfigGenerator) configureServerAndLoginDetails() error {
 			if err := keyring.Set("jira-cli", c.value.login, token); err != nil {
 				cmdutil.Warn("Unable to save token to keyring: %s\n"+
 					"Export it as JIRA_API_TOKEN or use a .netrc file instead.", err.Error())
+			} else {
+				c.value.tokenEntered = true
 			}
 		}
 	}
@@ -459,6 +462,14 @@ func (c *JiraCLIConfigGenerator) verifyLoginDetails(server, login string) error 
 	})
 	ret, err := c.jiraClient.Me()
 	if err != nil {
+		if c.value.tokenEntered {
+			// Remove the stored token from the system keyring as it is no longer valid.
+			if err := keyring.Delete("jira-cli", c.value.login); err != nil {
+				cmdutil.Warn("Unable to remove token from keyring: %s\n", err.Error())
+			}
+			c.value.tokenEntered = false
+		}
+
 		return err
 	}
 	if c.value.authType == jira.AuthTypeBearer {
