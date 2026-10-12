@@ -419,6 +419,8 @@ func (c *JiraCLIConfigGenerator) configureServerAndLoginDetails() error {
 		Login:  c.value.login,
 	}) == "" {
 		var token string
+		// Survey help line overwrites the line above without a spacer
+		fmt.Fprintln(os.Stderr)
 		prompt := &survey.Password{
 			Message: "API token (saved to system keyring):",
 			Help:    "You can also set the API token using the JIRA_API_TOKEN environment variable or a .netrc file.",
